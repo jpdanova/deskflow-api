@@ -15,6 +15,8 @@ builder.Services.AddDbContext<AppDbContext>(o =>
 
 builder.Services.AddScoped<ICategoriaRepository, CategoriaRepository>();
 builder.Services.AddScoped<ICategoriaService, CategoriaService>();
+builder.Services.AddScoped<IChamadoRepository, ChamadoRepository>();
+builder.Services.AddScoped<IChamadoService, ChamadoService>();
 
 var app = builder.Build();
 
