@@ -20,6 +20,22 @@ public class ChamadoRepository : IChamadoRepository
             .Include(c => c.Interacoes.OrderBy(i => i.DataRegistro))
             .FirstOrDefaultAsync(c => c.Id == id);
 
+    public async Task<List<Chamado>> ListarAsync(StatusChamado? status, Prioridade? prioridade, int? categoriaId)
+    {
+        var query = _context.Chamados.AsNoTracking().AsQueryable();
+
+        if (status.HasValue)
+            query = query.Where(c => c.Status == status.Value);
+
+        if (prioridade.HasValue)
+            query = query.Where(c => c.Prioridade == prioridade.Value);
+
+        if (categoriaId.HasValue)
+            query = query.Where(c => c.CategoriaId == categoriaId.Value);
+
+        return await query.OrderByDescending(c => c.DataAbertura).ToListAsync();
+    }
+
     public async Task AdicionarAsync(Chamado chamado)
     {
         _context.Chamados.Add(chamado);
@@ -29,6 +45,12 @@ public class ChamadoRepository : IChamadoRepository
     public async Task AtualizarAsync(Chamado chamado)
     {
         _context.Chamados.Update(chamado);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task AdicionarInteracaoAsync(Interacao interacao)
+    {
+        _context.Interacoes.Add(interacao);
         await _context.SaveChangesAsync();
     }
 }

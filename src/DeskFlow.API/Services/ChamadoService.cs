@@ -73,6 +73,12 @@ public class ChamadoService : IChamadoService
         };
     }
 
+    public async Task<List<ChamadoResponse>> ListarAsync(StatusChamado? status, Prioridade? prioridade, int? categoriaId)
+    {
+        var chamados = await _repository.ListarAsync(status, prioridade, categoriaId);
+        return chamados.Select(Mapear).ToList();
+    }
+
     public async Task<ChamadoResponse> IniciarAsync(int id)
     {
         var chamado = await _repository.ObterPorIdAsync(id)
@@ -105,6 +111,38 @@ public class ChamadoService : IChamadoService
         chamado.Status = StatusChamado.Fechado;
         await _repository.AtualizarAsync(chamado);
         return Mapear(chamado);
+    }
+
+    public async Task<InteracaoResponse> AdicionarInteracaoAsync(int chamadoId, InteracaoCreateRequest request)
+    {
+        var chamado = await _repository.ObterPorIdAsync(chamadoId)
+            ?? throw new NotFoundException($"Chamado {chamadoId} não encontrado.");
+
+        if (chamado.Status == StatusChamado.Fechado)
+            throw new BusinessException("Não é possível adicionar interações a um chamado Fechado.");
+
+        var autor = request.Autor.Trim();
+        var mensagem = request.Mensagem.Trim();
+        if (autor.Length == 0 || mensagem.Length == 0)
+            throw new BusinessException("Autor e mensagem são obrigatórios.");
+
+        var interacao = new Interacao
+        {
+            ChamadoId = chamadoId,
+            Autor = autor,
+            Mensagem = mensagem,
+            DataRegistro = DateTime.UtcNow
+        };
+
+        await _repository.AdicionarInteracaoAsync(interacao);
+
+        return new InteracaoResponse
+        {
+            Id = interacao.Id,
+            Autor = interacao.Autor,
+            Mensagem = interacao.Mensagem,
+            DataRegistro = interacao.DataRegistro
+        };
     }
 
     private static ChamadoResponse Mapear(Chamado c) => new()
