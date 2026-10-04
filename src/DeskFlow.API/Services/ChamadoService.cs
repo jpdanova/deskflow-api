@@ -87,6 +87,26 @@ public class ChamadoService : IChamadoService
         return Mapear(chamado);
     }
 
+    public async Task<ChamadoResponse> EncerrarAsync(int id, ChamadoEncerrarRequest request)
+    {
+        var chamado = await _repository.ObterPorIdAsync(id)
+            ?? throw new NotFoundException($"Chamado {id} não encontrado.");
+
+        if (chamado.Status != StatusChamado.EmAndamento)
+            throw new BusinessException(
+                $"Só é possível encerrar chamados com status EmAndamento. Status atual: {chamado.Status}.");
+
+        var solucao = request.Solucao.Trim();
+        if (solucao.Length == 0)
+            throw new BusinessException("A solução é obrigatória para encerrar o chamado.");
+
+        chamado.Solucao = solucao;
+        chamado.DataFechamento = DateTime.UtcNow;
+        chamado.Status = StatusChamado.Fechado;
+        await _repository.AtualizarAsync(chamado);
+        return Mapear(chamado);
+    }
+
     private static ChamadoResponse Mapear(Chamado c) => new()
     {
         Id = c.Id,
