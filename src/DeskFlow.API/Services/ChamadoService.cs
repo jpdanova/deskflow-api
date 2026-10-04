@@ -73,6 +73,20 @@ public class ChamadoService : IChamadoService
         };
     }
 
+    public async Task<ChamadoResponse> IniciarAsync(int id)
+    {
+        var chamado = await _repository.ObterPorIdAsync(id)
+            ?? throw new NotFoundException($"Chamado {id} não encontrado.");
+
+        if (chamado.Status != StatusChamado.Aberto)
+            throw new BusinessException(
+                $"Só é possível iniciar o atendimento de chamados com status Aberto. Status atual: {chamado.Status}.");
+
+        chamado.Status = StatusChamado.EmAndamento;
+        await _repository.AtualizarAsync(chamado);
+        return Mapear(chamado);
+    }
+
     private static ChamadoResponse Mapear(Chamado c) => new()
     {
         Id = c.Id,
