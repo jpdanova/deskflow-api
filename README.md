@@ -10,7 +10,7 @@ Projeto final do Módulo 01 do curso Desenvolvedor Back End .NET.
 - .NET 10 / ASP.NET Core Web API (Controllers)
 - Entity Framework Core 10 com Migrations
 - SQL Server (Express, LocalDB ou Docker)
-- OpenAPI (documento em `/openapi/v1.json` no ambiente de desenvolvimento)
+- OpenAPI + Swagger UI (interface em `http://localhost:5173/swagger` no ambiente de desenvolvimento)
 - Git e GitHub (commits semânticos e branches por funcionalidade)
 
 ## 🚀 Como Executar a Aplicação
@@ -54,6 +54,7 @@ Projeto final do Módulo 01 do curso Desenvolvedor Back End .NET.
    dotnet run
 ```
    A API sobe em `http://localhost:5173`.
+   Abra `http://localhost:5173/swagger` no navegador para testar os endpoints pela interface do Swagger.
 
 > Para recompilar durante o desenvolvimento, pare a API (`Ctrl+C`) antes de rodar `dotnet build`, pois o Windows bloqueia o executável em uso.
 
@@ -158,6 +159,7 @@ O desenvolvimento seguiu o fluxo com branches por funcionalidade, mescladas na `
 - `feature/chamados`: abertura e detalhes de chamados
 - `feature/ciclo-de-vida`: iniciar e encerrar chamado
 - `feature/interacoes-filtros`: interações e listagem com filtros
+- `feature/swagger`: documentação interativa com Swagger UI
 - `docs/readme`: documentação
 
 Os commits seguem o padrão semântico (`feat:`, `fix:`, `docs:`, `chore:`, `merge:`).
