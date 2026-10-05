@@ -25,6 +25,7 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
+    app.UseSwaggerUI(o => o.SwaggerEndpoint("/openapi/v1.json", "DeskFlow API v1"));
 }
 
 app.UseHttpsRedirection();
