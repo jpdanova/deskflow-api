@@ -1,0 +1,161 @@
+using DeskFlow.API.Exceptions;
+using DeskFlow.API.Models.DTOs;
+using DeskFlow.API.Models.Entities;
+using DeskFlow.API.Repositories;
+
+namespace DeskFlow.API.Services;
+
+public class ChamadoService : IChamadoService
+{
+    private readonly IChamadoRepository _repository;
+    private readonly ICategoriaRepository _categoriaRepository;
+
+    public ChamadoService(IChamadoRepository repository, ICategoriaRepository categoriaRepository)
+    {
+        _repository = repository;
+        _categoriaRepository = categoriaRepository;
+    }
+
+    public async Task<ChamadoResponse> AbrirAsync(ChamadoCreateRequest request)
+    {
+        var titulo = request.Titulo.Trim();
+        var descricao = request.Descricao.Trim();
+        var solicitante = request.SolicitanteNome.Trim();
+
+        if (titulo.Length == 0 || descricao.Length == 0 || solicitante.Length == 0)
+            throw new BusinessException("Título, descrição e nome do solicitante são obrigatórios.");
+
+        if (await _categoriaRepository.ObterPorIdAsync(request.CategoriaId) is null)
+            throw new BusinessException($"A categoria {request.CategoriaId} não existe.");
+
+        var chamado = new Chamado
+        {
+            Titulo = titulo,
+            Descricao = descricao,
+            SolicitanteNome = solicitante,
+            Prioridade = request.Prioridade!.Value,
+            CategoriaId = request.CategoriaId,
+            Status = StatusChamado.Aberto,
+            DataAbertura = DateTime.UtcNow
+        };
+
+        await _repository.AdicionarAsync(chamado);
+        return Mapear(chamado);
+    }
+
+    public async Task<ChamadoDetalheResponse> ObterDetalhadoAsync(int id)
+    {
+        var chamado = await _repository.ObterDetalhadoAsync(id)
+            ?? throw new NotFoundException($"Chamado {id} não encontrado.");
+
+        return new ChamadoDetalheResponse
+        {
+            Id = chamado.Id,
+            Titulo = chamado.Titulo,
+            Descricao = chamado.Descricao,
+            Prioridade = chamado.Prioridade,
+            Status = chamado.Status,
+            SolicitanteNome = chamado.SolicitanteNome,
+            DataAbertura = chamado.DataAbertura,
+            DataFechamento = chamado.DataFechamento,
+            Solucao = chamado.Solucao,
+            CategoriaId = chamado.CategoriaId,
+            Categoria = chamado.Categoria is null
+                ? null
+                : new CategoriaResponse { Id = chamado.Categoria.Id, Nome = chamado.Categoria.Nome },
+            Interacoes = chamado.Interacoes.Select(i => new InteracaoResponse
+            {
+                Id = i.Id,
+                Autor = i.Autor,
+                Mensagem = i.Mensagem,
+                DataRegistro = i.DataRegistro
+            }).ToList()
+        };
+    }
+
+    public async Task<List<ChamadoResponse>> ListarAsync(StatusChamado? status, Prioridade? prioridade, int? categoriaId)
+    {
+        var chamados = await _repository.ListarAsync(status, prioridade, categoriaId);
+        return chamados.Select(Mapear).ToList();
+    }
+
+    public async Task<ChamadoResponse> IniciarAsync(int id)
+    {
+        var chamado = await _repository.ObterPorIdAsync(id)
+            ?? throw new NotFoundException($"Chamado {id} não encontrado.");
+
+        if (chamado.Status != StatusChamado.Aberto)
+            throw new BusinessException(
+                $"Só é possível iniciar o atendimento de chamados com status Aberto. Status atual: {chamado.Status}.");
+
+        chamado.Status = StatusChamado.EmAndamento;
+        await _repository.AtualizarAsync(chamado);
+        return Mapear(chamado);
+    }
+
+    public async Task<ChamadoResponse> EncerrarAsync(int id, ChamadoEncerrarRequest request)
+    {
+        var chamado = await _repository.ObterPorIdAsync(id)
+            ?? throw new NotFoundException($"Chamado {id} não encontrado.");
+
+        if (chamado.Status != StatusChamado.EmAndamento)
+            throw new BusinessException(
+                $"Só é possível encerrar chamados com status EmAndamento. Status atual: {chamado.Status}.");
+
+        var solucao = request.Solucao.Trim();
+        if (solucao.Length == 0)
+            throw new BusinessException("A solução é obrigatória para encerrar o chamado.");
+
+        chamado.Solucao = solucao;
+        chamado.DataFechamento = DateTime.UtcNow;
+        chamado.Status = StatusChamado.Fechado;
+        await _repository.AtualizarAsync(chamado);
+        return Mapear(chamado);
+    }
+
+    public async Task<InteracaoResponse> AdicionarInteracaoAsync(int chamadoId, InteracaoCreateRequest request)
+    {
+        var chamado = await _repository.ObterPorIdAsync(chamadoId)
+            ?? throw new NotFoundException($"Chamado {chamadoId} não encontrado.");
+
+        if (chamado.Status == StatusChamado.Fechado)
+            throw new BusinessException("Não é possível adicionar interações a um chamado Fechado.");
+
+        var autor = request.Autor.Trim();
+        var mensagem = request.Mensagem.Trim();
+        if (autor.Length == 0 || mensagem.Length == 0)
+            throw new BusinessException("Autor e mensagem são obrigatórios.");
+
+        var interacao = new Interacao
+        {
+            ChamadoId = chamadoId,
+            Autor = autor,
+            Mensagem = mensagem,
+            DataRegistro = DateTime.UtcNow
+        };
+
+        await _repository.AdicionarInteracaoAsync(interacao);
+
+        return new InteracaoResponse
+        {
+            Id = interacao.Id,
+            Autor = interacao.Autor,
+            Mensagem = interacao.Mensagem,
+            DataRegistro = interacao.DataRegistro
+        };
+    }
+
+    private static ChamadoResponse Mapear(Chamado c) => new()
+    {
+        Id = c.Id,
+        Titulo = c.Titulo,
+        Descricao = c.Descricao,
+        Prioridade = c.Prioridade,
+        Status = c.Status,
+        SolicitanteNome = c.SolicitanteNome,
+        DataAbertura = c.DataAbertura,
+        DataFechamento = c.DataFechamento,
+        Solucao = c.Solucao,
+        CategoriaId = c.CategoriaId
+    };
+}
