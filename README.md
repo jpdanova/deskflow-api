@@ -171,4 +171,4 @@ Os commits seguem o padrão semântico (`feat:`, `fix:`, `docs:`, `chore:`, `mer
 - Atribuição de chamados a técnicos responsáveis
 
 ## 🎥 Vídeo de Apresentação
-O vídeo de demonstração do projeto será disponibilizado aqui, e também no AVA, após a gravação.
+[Clique aqui para assistir ao vídeo de demonstração do projeto](https://www.youtube.com/watch?v=_pQAiE97Jy8)
